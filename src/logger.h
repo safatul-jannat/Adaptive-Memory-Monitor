@@ -3,9 +3,7 @@
 
 #include "types.h"
 
-void log_sample(
-        MemorySample *sample
-);
+void log_sample(MemorySample *sample);
 
 
 #endif
