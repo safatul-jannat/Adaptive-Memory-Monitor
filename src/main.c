@@ -4,6 +4,8 @@
 #include "types.h"
 #include "process_discovery.h"
 #include "proc_reader.h"
+#include "logger.h"
+#include <time.h>
 
 
 #define MAX_PROCESSES 1024
@@ -85,6 +87,7 @@ int main()
                 continue;
             }
 
+            sample.timestamp = time(NULL);
 
             printf(
                 "%-8d %-20s %-12lu %-12lu\n",
@@ -93,6 +96,9 @@ int main()
                 sample.rss_kb,
                 sample.vmsize_kb
             );
+            
+
+            log_sample(&sample);
         }
 
 
