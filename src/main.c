@@ -10,6 +10,7 @@
 #include "history.h"
 #include "analyzer.h"
 #include "risk_engine.h"
+#include "scheduler.h"
 
 
 #define MAX_PROCESSES 1024
@@ -64,6 +65,10 @@ int main()
 
     static ProcessHistoryEntry history_table[MAX_PROCESSES] = {0};
 
+    SchedulerState scheduler_state;
+
+    scheduler_init(&scheduler_state);
+
 
     printf("Adaptive Memory Monitor\n");
     printf("=======================\n");
@@ -84,7 +89,7 @@ int main()
         {
             printf("Failed to discover processes\n");
 
-            sleep(SAMPLE_INTERVAL);
+            sleep(scheduler_state.current_interval);
 
             continue;
         }
@@ -104,6 +109,15 @@ int main()
         printf(
             "------------------------------------------------------\n"
         );
+
+
+        /*
+         * Track the most severe risk level
+         * observed this monitoring round.
+         */
+        RiskLevel round_worst = RISK_NORMAL;
+
+        int round_worst_pid = -1;
 
 
         /*
@@ -243,6 +257,13 @@ int main()
                     "Risk Level: %s\n",
                     risk_level_name(risk_level)
                 );
+
+                if (risk_level > round_worst)
+                {
+                    round_worst = risk_level;
+
+                    round_worst_pid = entry->pid;
+                }
             }
 
 
@@ -262,9 +283,31 @@ int main()
         }
 
         /*
-         * Wait before the next monitoring round.
+         * Determine the next sampling interval
+         * from the scheduler using the round's
+         * worst risk level.
          */
-        sleep(SAMPLE_INTERVAL);
+        int next_interval =
+            scheduler_update(
+                &scheduler_state,
+                round_worst
+            );
+
+        if (round_worst_pid > 0)
+        {
+            printf(
+                "\nHighest risk this round: PID %d (%s)\n",
+                round_worst_pid,
+                risk_level_name(round_worst)
+            );
+        }
+
+        printf(
+            "Next sampling interval: %d sec\n",
+            next_interval
+        );
+
+        sleep(next_interval);
     }
 
 
