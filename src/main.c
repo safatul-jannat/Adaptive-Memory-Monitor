@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <unistd.h>
 #include <time.h>
@@ -12,18 +11,14 @@
 #include "risk_engine.h"
 #include "scheduler.h"
 
-
 #define MAX_PROCESSES 1024
-#define SAMPLE_INTERVAL 5
 
 /*
- * Time window used by the analyzer for
- * sustained growth and retention features.
- * Covers the whole history buffer.
+ * The analyzer time window must cover the whole stored
+ * history even when the scheduler is sampling slowly
+ * (10 seconds per sample).
  */
-#define ANALYSIS_WINDOW_SECONDS \
-    (SAMPLE_INTERVAL * HISTORY_CAPACITY)
-
+#define ANALYSIS_WINDOW_SECONDS (HISTORY_CAPACITY * 10)
 
 typedef struct
 {
@@ -32,31 +27,22 @@ typedef struct
     int active;
 } ProcessHistoryEntry;
 
-
-/*
- * Temporary verification helper.
- * Maps the risk level enum to a printable name.
- */
-static const char *risk_level_name(RiskLevel level)
+static const char *risk_name(RiskLevel level)
 {
     switch (level)
     {
         case RISK_NORMAL:
             return "NORMAL";
-
         case RISK_SUSPICIOUS:
             return "SUSPICIOUS";
-
         case RISK_HIGH:
             return "HIGH";
-
         case RISK_CRITICAL:
             return "CRITICAL";
     }
 
     return "UNKNOWN";
 }
-
 
 int main()
 {
@@ -65,92 +51,52 @@ int main()
 
     static ProcessHistoryEntry history_table[MAX_PROCESSES] = {0};
 
-    SchedulerState scheduler_state;
+    SchedulerState sched;
 
-    scheduler_init(&scheduler_state);
-
+    scheduler_init(&sched);
 
     printf("Adaptive Memory Monitor\n");
     printf("=======================\n");
 
-
     while (1)
     {
-        /*
-         * Discover currently running processes.
-         */
-        process_count = get_process_list(
-            pids,
-            MAX_PROCESSES
-        );
-
+        process_count = get_process_list(pids, MAX_PROCESSES);
 
         if (process_count < 0)
         {
             printf("Failed to discover processes\n");
 
-            sleep(scheduler_state.current_interval);
+            sleep(sched.current_interval);
 
             continue;
         }
 
+        printf("\nProcesses found: %d\n\n", process_count);
 
-        printf("\n");
-        printf("Processes found: %d\n\n", process_count);
+        printf("%-8s %-20s %-12s %-12s\n",
+               "PID", "NAME", "RSS(KB)", "VSIZE(KB)");
 
-        printf(
-            "%-8s %-20s %-12s %-12s\n",
-            "PID",
-            "NAME",
-            "RSS(KB)",
-            "VSIZE(KB)"
-        );
-
-        printf(
-            "------------------------------------------------------\n"
-        );
-
+        printf("------------------------------------------------------\n");
 
         /*
-         * Track the most severe risk level
-         * observed this monitoring round.
+         * Track the worst risk level seen this round
+         * and the process that caused it.
          */
-        RiskLevel round_worst = RISK_NORMAL;
+        RiskLevel worst = RISK_NORMAL;
+        int worst_pid = -1;
 
-        int round_worst_pid = -1;
-
-
-        /*
-         * Read memory information
-         * for every discovered process.
-         */
         for (int i = 0; i < process_count; i++)
         {
             MemorySample sample;
 
-
-            int result = read_process_memory(
-                pids[i],
-                &sample
-            );
-
-
-            /*
-             * Process may have exited between
-             * discovery and memory reading.
-             */
-            if (result != 0)
+            if (read_process_memory(pids[i], &sample) != 0)
             {
                 continue;
             }
 
-
             sample.timestamp = time(NULL);
 
-
-            /*
-             * Locate the per-PID history entry.
-             */
+            /* look up the history entry for this pid */
             ProcessHistoryEntry *entry = NULL;
 
             for (int e = 0; e < MAX_PROCESSES; e++)
@@ -159,16 +105,11 @@ int main()
                     history_table[e].pid == sample.pid)
                 {
                     entry = &history_table[e];
-
                     break;
                 }
             }
 
-
-            /*
-             * No active entry yet for this PID,
-             * so allocate a new one.
-             */
+            /* no entry yet, so create one */
             if (entry == NULL)
             {
                 for (int e = 0; e < MAX_PROCESSES; e++)
@@ -176,141 +117,68 @@ int main()
                     if (!history_table[e].active)
                     {
                         entry = &history_table[e];
-
                         entry->pid = sample.pid;
                         entry->active = 1;
-
                         history_init(&entry->history);
-
                         break;
                     }
                 }
             }
 
-
-            /*
-             * Store the real memory sample
-             * in per-PID process history.
-             */
             if (entry != NULL)
             {
-                history_add_sample(
-                    &entry->history,
-                    &sample
-                );
+                history_add_sample(&entry->history, &sample);
             }
 
+            printf("%-8d %-20s %-12lu %-12lu\n",
+                   sample.pid, sample.name,
+                   sample.rss_kb, sample.vmsize_kb);
 
-            /*
-             * Run the analyzer on this PID's own
-             * history once it has enough samples.
-             */
-            if (entry != NULL &&
-                history_count(&entry->history) >= 2)
-            {
-                double growth = calculate_growth_rate(
-                    &entry->history
-                );
-
-                double sustained =
-                    calculate_sustained_growth(
-                        &entry->history,
-                        ANALYSIS_WINDOW_SECONDS
-                    );
-
-                double retention =
-                    calculate_retention_score(
-                        &entry->history,
-                        ANALYSIS_WINDOW_SECONDS
-                    );
-
-                double deviation =
-                    calculate_historical_deviation(
-                        &entry->history
-                    );
-
-                /*
-                 * Feed this PID's analyzer features
-                 * into the risk engine.
-                 */
-                double risk_score =
-                    calculate_risk_from_features(
-                        growth,
-                        sustained,
-                        retention,
-                        deviation
-                    );
-
-                RiskLevel risk_level =
-                    classify_risk(risk_score);
-
-                printf("PID %d\n", entry->pid);
-                printf("Growth: %.4f\n", growth);
-                printf("Sustained Growth: %.4f\n", sustained);
-                printf("Retention: %.4f\n", retention);
-                printf(
-                    "Historical Deviation: %.4f\n",
-                    deviation
-                );
-                printf("Risk Score: %.4f\n", risk_score);
-                printf(
-                    "Risk Level: %s\n",
-                    risk_level_name(risk_level)
-                );
-
-                if (risk_level > round_worst)
-                {
-                    round_worst = risk_level;
-
-                    round_worst_pid = entry->pid;
-                }
-            }
-
-
-            printf(
-                "%-8d %-20s %-12lu %-12lu\n",
-                sample.pid,
-                sample.name,
-                sample.rss_kb,
-                sample.vmsize_kb
-            );
-
-
-            /*
-             * Save the sample to CSV.
-             */
             log_sample(&sample);
+
+            /* analyse once enough samples have been collected */
+            if (entry == NULL ||
+                history_count(&entry->history) < 2)
+            {
+                continue;
+            }
+
+            double growth = calculate_growth_rate(&entry->history);
+
+            double sustained = calculate_sustained_growth(
+                &entry->history, ANALYSIS_WINDOW_SECONDS);
+
+            double retention = calculate_retention_score(
+                &entry->history, ANALYSIS_WINDOW_SECONDS);
+
+            double deviation =
+                calculate_historical_deviation(&entry->history);
+
+            double risk = calculate_risk_from_features(
+                growth, sustained, retention, deviation);
+
+            RiskLevel level = classify_risk(risk);
+
+            if (level > worst)
+            {
+                worst = level;
+                worst_pid = sample.pid;
+            }
         }
 
-        /*
-         * Determine the next sampling interval
-         * from the scheduler using the round's
-         * worst risk level.
-         */
-        int next_interval =
-            scheduler_update(
-                &scheduler_state,
-                round_worst
-            );
+        /* feed the worst level to the global scheduler */
+        int interval = scheduler_update(&sched, worst);
 
-        if (round_worst_pid > 0)
+        if (worst_pid > 0)
         {
-            printf(
-                "\nHighest risk this round: PID %d (%s)\n",
-                round_worst_pid,
-                risk_level_name(round_worst)
-            );
+            printf("\nHighest risk this round: PID %d (%s)\n",
+                   worst_pid, risk_name(worst));
         }
 
-        printf(
-            "Next sampling interval: %d sec\n",
-            next_interval
-        );
+        printf("Next sampling interval: %d sec\n", interval);
 
-        sleep(next_interval);
+        sleep(interval);
     }
-
 
     return 0;
 }
-
