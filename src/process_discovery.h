@@ -4,7 +4,7 @@
 
 int get_process_list(
         int *pids,
-        int max
+        int max_processes
 );
 
 
