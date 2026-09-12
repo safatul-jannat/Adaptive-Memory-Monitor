@@ -8,10 +8,19 @@
 #include "proc_reader.h"
 #include "logger.h"
 #include "history.h"
+#include "analyzer.h"
 
 
 #define MAX_PROCESSES 1024
 #define SAMPLE_INTERVAL 5
+
+/*
+ * Time window used by the analyzer for
+ * sustained growth and retention features.
+ * Covers the whole history buffer.
+ */
+#define ANALYSIS_WINDOW_SECONDS \
+    (SAMPLE_INTERVAL * HISTORY_CAPACITY)
 
 
 typedef struct
@@ -148,6 +157,45 @@ int main()
                 history_add_sample(
                     &entry->history,
                     &sample
+                );
+            }
+
+
+            /*
+             * Run the analyzer on this PID's own
+             * history once it has enough samples.
+             */
+            if (entry != NULL &&
+                history_count(&entry->history) >= 2)
+            {
+                double growth = calculate_growth_rate(
+                    &entry->history
+                );
+
+                double sustained =
+                    calculate_sustained_growth(
+                        &entry->history,
+                        ANALYSIS_WINDOW_SECONDS
+                    );
+
+                double retention =
+                    calculate_retention_score(
+                        &entry->history,
+                        ANALYSIS_WINDOW_SECONDS
+                    );
+
+                double deviation =
+                    calculate_historical_deviation(
+                        &entry->history
+                    );
+
+                printf("PID %d\n", entry->pid);
+                printf("Growth: %.4f\n", growth);
+                printf("Sustained Growth: %.4f\n", sustained);
+                printf("Retention: %.4f\n", retention);
+                printf(
+                    "Historical Deviation: %.4f\n",
+                    deviation
                 );
             }
 
