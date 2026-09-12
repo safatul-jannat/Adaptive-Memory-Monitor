@@ -9,6 +9,7 @@
 #include "logger.h"
 #include "history.h"
 #include "analyzer.h"
+#include "risk_engine.h"
 
 
 #define MAX_PROCESSES 1024
@@ -29,6 +30,31 @@ typedef struct
     ProcessHistory history;
     int active;
 } ProcessHistoryEntry;
+
+
+/*
+ * Temporary verification helper.
+ * Maps the risk level enum to a printable name.
+ */
+static const char *risk_level_name(RiskLevel level)
+{
+    switch (level)
+    {
+        case RISK_NORMAL:
+            return "NORMAL";
+
+        case RISK_SUSPICIOUS:
+            return "SUSPICIOUS";
+
+        case RISK_HIGH:
+            return "HIGH";
+
+        case RISK_CRITICAL:
+            return "CRITICAL";
+    }
+
+    return "UNKNOWN";
+}
 
 
 int main()
@@ -189,6 +215,21 @@ int main()
                         &entry->history
                     );
 
+                /*
+                 * Feed this PID's analyzer features
+                 * into the risk engine.
+                 */
+                double risk_score =
+                    calculate_risk_from_features(
+                        growth,
+                        sustained,
+                        retention,
+                        deviation
+                    );
+
+                RiskLevel risk_level =
+                    classify_risk(risk_score);
+
                 printf("PID %d\n", entry->pid);
                 printf("Growth: %.4f\n", growth);
                 printf("Sustained Growth: %.4f\n", sustained);
@@ -196,6 +237,11 @@ int main()
                 printf(
                     "Historical Deviation: %.4f\n",
                     deviation
+                );
+                printf("Risk Score: %.4f\n", risk_score);
+                printf(
+                    "Risk Level: %s\n",
+                    risk_level_name(risk_level)
                 );
             }
 
