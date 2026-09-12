@@ -1,0 +1,17 @@
+file,samples,average_risk,detection_latency
+adaptive_normal.csv,60,0.0,
+fixed1_bursty.csv,60,0.3,
+fixed1_memory_intensive.csv,60,1.0333333333333334,
+adaptive_bursty.csv,60,0.3,
+fixed5_sustained_growth.csv,60,59.166666666666664,29.0
+fixed5_bursty.csv,60,0.3,
+adaptive_sustained_growth.csv,60,59.166666666666664,29.0
+fixed10_normal.csv,60,0.0,
+fixed10_bursty.csv,60,0.3,
+fixed1_sustained_growth.csv,60,59.166666666666664,29.0
+fixed10_sustained_growth.csv,60,59.166666666666664,29.0
+adaptive_memory_intensive.csv,60,0.3333333333333333,
+fixed1_normal.csv,60,0.0,
+fixed5_memory_intensive.csv,60,0.11666666666666667,
+fixed10_memory_intensive.csv,60,0.9333333333333333,
+fixed5_normal.csv,60,0.0,
