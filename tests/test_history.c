@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "src/history.h"
+#include "../src/history.h"
 void create_sample(MemorySample *sample, unsigned long value)
 {
     sample->pid = 1000;
