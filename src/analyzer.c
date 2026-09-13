@@ -1,6 +1,21 @@
 #include "analyzer.h"
 
 
+/*
+ * Experimental evidence constants:
+ *
+ * A single positive RSS increase must not
+ * be treated as sustained abnormal growth.
+ *
+ * At least MIN_POSITIVE_GROWTH_INTERVALS
+ * positive intervals inside the window are
+ * required, and the positive-to-total ratio
+ * must reach MIN_SUSTAINED_GROWTH_RATIO.
+ */
+#define MIN_POSITIVE_GROWTH_INTERVALS 3
+#define MIN_SUSTAINED_GROWTH_RATIO 0.75
+
+
 double calculate_growth_rate(
     const ProcessHistory *history
 )
@@ -146,8 +161,24 @@ double calculate_sustained_growth(
     }
 
 
-    return (double)positive_growth /
-           (double)total_intervals;
+    if (positive_growth < MIN_POSITIVE_GROWTH_INTERVALS)
+    {
+        return 0.0;
+    }
+
+
+    double ratio =
+        (double)positive_growth /
+        (double)total_intervals;
+
+
+    if (ratio < MIN_SUSTAINED_GROWTH_RATIO)
+    {
+        return 0.0;
+    }
+
+
+    return ratio;
 }
 double calculate_retention_score(
     const ProcessHistory *history,
@@ -173,50 +204,139 @@ double calculate_retention_score(
     }
 
 
-    unsigned long min_rss = newest.rss_kb;
-    unsigned long max_rss = newest.rss_kb;
+    int total_intervals = 0;
+    int positive_growth = 0;
+
+    unsigned long total_positive_growth = 0;
+
+    unsigned long oldest_rss = 0;
+    int found_first_interval = 0;
 
 
-    for (size_t i = 0; i < count; i++)
+    /*
+     * Walk forward through history
+     * keeping only chronological intervals
+     * inside the requested time window.
+     */
+    for (size_t i = 1; i < count; i++)
     {
-        MemorySample sample;
+        MemorySample older;
+        MemorySample newer;
 
 
         if (history_get_sample(
                 history,
-                i,
-                &sample) != 0)
+                i - 1,
+                &older) != 0)
         {
             continue;
         }
 
 
-        if ((newest.timestamp - sample.timestamp)
-            <= window_seconds)
+        if (history_get_sample(
+                history,
+                i,
+                &newer) != 0)
         {
-            if (sample.rss_kb < min_rss)
-            {
-                min_rss = sample.rss_kb;
-            }
+            continue;
+        }
 
 
-            if (sample.rss_kb > max_rss)
-            {
-                max_rss = sample.rss_kb;
-            }
+        /*
+         * Stop when outside time window.
+         */
+        if ((newest.timestamp - older.timestamp)
+            > window_seconds)
+        {
+            break;
+        }
+
+
+        if (!found_first_interval)
+        {
+            oldest_rss = older.rss_kb;
+            found_first_interval = 1;
+        }
+
+
+        total_intervals++;
+
+
+        if (newer.rss_kb > older.rss_kb)
+        {
+            positive_growth++;
+
+            total_positive_growth +=
+                newer.rss_kb - older.rss_kb;
         }
     }
 
 
-    if (max_rss == min_rss)
+    /*
+     * Use the same evidence rules as
+     * sustained growth.
+     */
+    if (total_intervals == 0)
     {
         return 0.0;
     }
 
 
-    return
-        (double)(newest.rss_kb - min_rss) /
-        (double)(max_rss - min_rss);
+    if (positive_growth < MIN_POSITIVE_GROWTH_INTERVALS)
+    {
+        return 0.0;
+    }
+
+
+    double growth_ratio =
+        (double)positive_growth /
+        (double)total_intervals;
+
+
+    if (growth_ratio < MIN_SUSTAINED_GROWTH_RATIO)
+    {
+        return 0.0;
+    }
+
+
+    if (total_positive_growth == 0)
+    {
+        return 0.0;
+    }
+
+
+    /*
+     * Avoid unsigned subtraction underflow.
+     */
+    if (newest.rss_kb <= oldest_rss)
+    {
+        return 0.0;
+    }
+
+
+    double net_retained_growth =
+        (double)newest.rss_kb -
+        (double)oldest_rss;
+
+
+    double retention =
+        net_retained_growth /
+        (double)total_positive_growth;
+
+
+    if (retention < 0.0)
+    {
+        retention = 0.0;
+    }
+
+
+    if (retention > 1.0)
+    {
+        retention = 1.0;
+    }
+
+
+    return retention;
 }
 double calculate_historical_deviation(
     const ProcessHistory *history
@@ -274,16 +394,13 @@ double calculate_historical_deviation(
     }
 
 
-    double difference =
-        (double)current.rss_kb -
-        mean_rss;
-
-
-    if (difference < 0)
+    if (current.rss_kb <= mean_rss)
     {
-        difference = -difference;
+        return 0.0;
     }
 
 
-    return difference / mean_rss;
+    return
+        ((double)current.rss_kb - mean_rss) /
+        mean_rss;
 }
