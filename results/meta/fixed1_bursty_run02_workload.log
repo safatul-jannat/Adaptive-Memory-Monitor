@@ -1,0 +1,16 @@
+Bursty workload started.
+PID: 6656
+Each burst: 100 MB
+Cycles: 3
+Baseline: 15 seconds
+Baseline phase started.
+Burst 1: allocated 100 MB
+Burst 1: memory released
+Burst 1: low-memory phase started (10 seconds)
+Burst 2: allocated 100 MB
+Burst 2: memory released
+Burst 2: low-memory phase started (10 seconds)
+Burst 3: allocated 100 MB
+Burst 3: memory released
+Burst 3: low-memory phase started (10 seconds)
+Bursty workload finished.

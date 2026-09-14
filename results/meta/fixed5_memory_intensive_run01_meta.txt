@@ -1,0 +1,9 @@
+experiment_id=fixed5_memory_intensive_run01
+strategy=fixed5
+workload=memory_intensive
+run=01
+ground_truth=negative
+monitor_duration_sec=65
+workload_pid=5784
+anomaly_start_epoch=
+monitor_exit_status=0

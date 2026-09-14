@@ -1,0 +1,9 @@
+experiment_id=fixed10_bursty_run03
+strategy=fixed10
+workload=bursty
+run=03
+ground_truth=negative
+monitor_duration_sec=82
+workload_pid=7596
+anomaly_start_epoch=
+monitor_exit_status=0

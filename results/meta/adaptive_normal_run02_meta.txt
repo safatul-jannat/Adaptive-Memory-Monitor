@@ -1,0 +1,9 @@
+experiment_id=adaptive_normal_run02
+strategy=adaptive
+workload=normal
+run=02
+ground_truth=negative
+monitor_duration_sec=60
+workload_pid=7083
+anomaly_start_epoch=
+monitor_exit_status=0

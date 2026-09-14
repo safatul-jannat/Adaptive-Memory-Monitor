@@ -1,0 +1,7 @@
+Memory intensive workload started.
+PID: 7502
+LOW phase: 20 MB for 20 seconds
+HIGH phase: 200 MB for 20 seconds
+Memory released.
+RELEASE phase: 20 seconds
+Memory intensive workload finished.
