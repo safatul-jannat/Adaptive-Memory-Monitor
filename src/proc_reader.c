@@ -14,8 +14,9 @@ int read_process_memory(int pid, MemorySample *sample)
     FILE *file;
 
 
-    // Create path:
-    // /proc/<PID>/status
+    memset(sample, 0, sizeof(*sample));
+    sample->pid = pid;
+
 
     snprintf(
         path,
@@ -25,22 +26,13 @@ int read_process_memory(int pid, MemorySample *sample)
     );
 
 
-    // Open status file
-
     file = fopen(path, "r");
 
 
     if(file == NULL)
     {
-        // Process may have exited
         return -1;
     }
-
-
-
-    // Store PID
-
-    sample->pid = pid;
 
 
 

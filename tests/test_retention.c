@@ -117,5 +117,52 @@ int main(void)
     printf("RETENTION TEST PASS\n");
 
 
+    /*
+ * Long-history retention test.
+ *
+ * The complete history is longer than the 60-second analysis
+ * window. Persistent recent growth must still produce a high
+ * retention score.
+ */
+ProcessHistory long_history;
+history_init(&long_history);
+
+MemorySample long_samples[] = {
+    {.rss_kb = 100000, .timestamp = 0},
+    {.rss_kb = 110000, .timestamp = 10},
+    {.rss_kb = 120000, .timestamp = 20},
+    {.rss_kb = 130000, .timestamp = 30},
+    {.rss_kb = 140000, .timestamp = 40},
+    {.rss_kb = 150000, .timestamp = 50},
+    {.rss_kb = 160000, .timestamp = 60},
+    {.rss_kb = 170000, .timestamp = 70},
+    {.rss_kb = 180000, .timestamp = 80}
+};
+
+size_t long_count =
+    sizeof(long_samples) / sizeof(long_samples[0]);
+
+for (size_t i = 0; i < long_count; i++)
+{
+    history_add_sample(
+        &long_history,
+        &long_samples[i]
+    );
+}
+
+double long_retention =
+    calculate_retention_score(
+        &long_history,
+        60
+    );
+
+printf(
+    "Long-history retention score: %.2f\n",
+    long_retention
+);
+
+assert(long_retention > 0.8);
+
+printf("LONG HISTORY RETENTION TEST PASS\n");
     return 0;
 }

@@ -1,0 +1,9 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#define MAX_PROCESSES 1024
+#define ANALYSIS_WINDOW_SECONDS 60
+#define MIN_ANALYSIS_SAMPLES 4
+#define MAIN_LOOP_TICK_SECONDS 1
+
+#endif

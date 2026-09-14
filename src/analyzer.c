@@ -248,7 +248,7 @@ double calculate_retention_score(
         if ((newest.timestamp - older.timestamp)
             > window_seconds)
         {
-            break;
+            continue;
         }
 
 
