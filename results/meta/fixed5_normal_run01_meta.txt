@@ -1,0 +1,9 @@
+experiment_id=fixed5_normal_run01
+strategy=fixed5
+workload=normal
+run=01
+ground_truth=negative
+monitor_duration_sec=60
+workload_pid=5767
+anomaly_start_epoch=
+monitor_exit_status=0

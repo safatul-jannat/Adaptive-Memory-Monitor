@@ -1,0 +1,9 @@
+experiment_id=adaptive_sustained_growth_run02
+strategy=adaptive
+workload=sustained_growth
+run=02
+ground_truth=positive
+monitor_duration_sec=120
+workload_pid=7161
+anomaly_start_epoch=1789393245
+monitor_exit_status=0

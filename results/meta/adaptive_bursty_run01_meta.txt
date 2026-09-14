@@ -1,0 +1,9 @@
+experiment_id=adaptive_bursty_run01
+strategy=adaptive
+workload=bursty
+run=01
+ground_truth=negative
+monitor_duration_sec=82
+workload_pid=6316
+anomaly_start_epoch=
+monitor_exit_status=0

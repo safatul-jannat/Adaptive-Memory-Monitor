@@ -1,0 +1,7 @@
+timestamp,pid,process_name,rss_kb,vmsize_kb,growth_rate,sustained_growth,retention_score,historical_deviation,risk_score,risk_level,sampling_interval,strategy
+1789393150,7099,memory_intensiv,22192,23060,0.000000,0.000000,0.000000,0.000000,0.000000,NORMAL,10,adaptive
+1789393160,7099,memory_intensiv,22192,23060,0.000000,0.000000,0.000000,0.000000,0.000000,NORMAL,10,adaptive
+1789393170,7099,memory_intensiv,226992,227864,0.000000,0.000000,0.000000,0.000000,0.000000,NORMAL,10,adaptive
+1789393180,7099,memory_intensiv,226992,227864,0.000000,0.000000,0.000000,0.821883,12.328239,NORMAL,10,adaptive
+1789393190,7099,memory_intensiv,1712,2576,-22528.000000,0.000000,0.000000,0.000000,0.000000,NORMAL,10,adaptive
+1789393200,7099,memory_intensiv,1712,2576,0.000000,0.000000,0.000000,0.000000,0.000000,NORMAL,10,adaptive

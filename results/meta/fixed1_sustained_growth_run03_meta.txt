@@ -1,0 +1,9 @@
+experiment_id=fixed1_sustained_growth_run03
+strategy=fixed1
+workload=sustained_growth
+run=03
+ground_truth=positive
+monitor_duration_sec=120
+workload_pid=7368
+anomaly_start_epoch=1789393576
+monitor_exit_status=0
