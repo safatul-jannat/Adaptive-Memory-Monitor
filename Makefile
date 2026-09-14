@@ -68,5 +68,5 @@ test: tests
 	@echo "ALL TESTS PASS"
 
 clean:
-	rm -rf $(BUILD_DIR) $(TEST_BIN) workloads/bin
-	rm -f monitor
+	rm -rf build tests/bin workloads/bin
+	rm -f monitor monitor.o
